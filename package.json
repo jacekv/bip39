@@ -1,0 +1,29 @@
+{
+  "name": "bip39",
+  "version": "1.0.0",
+  "description": "Tried to implement BIP39 using Python and JavaScript without the need of installing packages.",
+  "main": "bip39.js",
+  "scripts": {
+    "lint": "eslint",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jacekv/bip39.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jacekv/bip39/issues"
+  },
+  "homepage": "https://github.com/jacekv/bip39#readme",
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^3.5.0",
+    "@typescript-eslint/parser": "^3.5.0",
+    "eslint": "^7.4.0",
+    "eslint-config-google": "^0.14.0"
+  },
+  "dependencies": {
+    "pbkdf2": "^3.1.1"
+  }
+}

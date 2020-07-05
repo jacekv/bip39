@@ -1,79 +1,142 @@
-const crypto = require("crypto");
+const crypto = require('crypto');
+const pbkdf2 = require('pbkdf2');
 const wordList = require('./english.js');
+/*
+    Todo: left pad
+          work on package.json
+          write comments
+          README.md
+ */
 
-
-//16 bytes = 128 bits
-let size = 128;
-
+module.exports = {
+  genEntropy: genEntropy,
+  genMnemonic: genMnemonic,
+  validMnemonic: validMnemonic,
+  mnemonicToSeedSync: mnemonicToSeedSync,
+};
+/**
+ * Hashes the given data using sha256
+ * @param {*} data - Data to be hashed
+ * @return {Buffer} Hash digest
+ */
 function hashData(data) {
-    let sha256 = crypto.createHash('sha256');
-    return sha256.update(data).digest();
+  const sha256 = crypto.createHash('sha256');
+  return sha256.update(data).digest();
 }
 
+/**
+ * Invalid size exception which is thrown if the size of the entropy is off
+ * @param {string} message
+ */
 function InvalidSizeException(message) {
-    this.message = message;
-    this.name = 'InvalidSizeException'
+  this.message = message;
+  this.name = 'InvalidSizeException';
 }
 
-function mapWords(checksummed_entropy) {
-    let mnemonic = '';
-    for(let i = 0; i < checksummed_entropy.length; i += 11) {
-        value = parseInt(checksummed_entropy.slice(i, (i+11)), 2)
-        mnemonic += wordList.numberToWord[value] + ' '; 
-    }
-    return mnemonic;
+/**
+ * Takes an entropy and mappes the words
+ * @param {*} checksummedEntropy - Entrupy with a checksum
+ * @return {string} Mnemonic
+ */
+function mapWords(checksummedEntropy) {
+  let mnemonic = '';
+  for (let i = 0; i < checksummedEntropy.length; i += 11) {
+    value = parseInt(checksummedEntropy.slice(i, (i+11)), 2);
+    mnemonic += wordList.numberToWord[value] + ' ';
+  }
+  return mnemonic.trimRight();
 }
 
-function mapNumbers(mnemonic) {
-    mnemonic = mnemonic.split(' ');
-    // remove empty string
-    mnemonic.pop();
-    let binary = '';
-    // mapping from word to bi
-    for (const word of mnemonic) {
-        bin = wordList.wordToNumber[word].toString(2)
-        binary += "00000000000".substr(bin.length) + bin;
-    }
-    let checksumLength = Math.floor(binary.length / 32)
-    let checksum = binary.slice(binary.length - checksumLength);
-    let values = [];
-    //
-    for(let i = 0; i < binary.length - checksumLength; i += 8) {
-        value = parseInt(binary.slice(i, (i+8)), 2)
-        values.push(value)
-    }
-    let hash = hashData( new Buffer.from(values));
-    let hash_binary = hash[0].toString(2);
-    hash_binary = hash_binary.slice(0, checksumLength)
-    if (hash_binary === checksum) {
-        console.log('All good')
-    } else {
-        console.log('Invalid');
-    }
+/**
+ * Checks if a given mnemonic is valid
+ * @param {string} mnemonic
+ * @return {boolean} True, if valid, false is invalid
+ */
+function validMnemonic(mnemonic) {
+  mnemonic = mnemonic.split(' ');
+  // remove empty string
+  let binary = '';
+  // mapping from word to bi
+  for (const word of mnemonic) {
+    bin = wordList.wordToNumber[word].toString(2);
+    binary += '00000000000'.substr(bin.length) + bin;
+  }
+  const checksumLength = Math.floor(binary.length / 32);
+  const checksum = binary.slice(binary.length - checksumLength);
+  const values = [];
+  // extracting byte by byte
+  for (let i = 0; i < binary.length - checksumLength; i += 8) {
+    value = parseInt(binary.slice(i, (i+8)), 2);
+    values.push(value);
+  }
+  const hash = hashData(Buffer.from(values));
+  let hashBinary = hash[0].toString(2);
+  hashBinary = '00000000'.substr(hashBinary.length) + hashBinary;
+  hashBinary = hashBinary.slice(0, checksumLength);
+  if (hashBinary !== checksum) {
+    return false;
+  }
+  return true;
 }
 
-function gen_mnemonic(size) {
-    if (size < 128 || size > 256 || size % 32 !== 0) {
-        throw new InvalidSizeException('The provided size is invalid');
-    }
-    let entropy = crypto.randomBytes(size / 8);
-    let binary;
-    let entropy_binary = "";
-    // change from byte buffer to binary string
-    for (const b of entropy) {
-        binary = b.toString(2);
-        entropy_binary += "00000000".substr(binary.length) + binary;
-    }
-    let hash = hashData(entropy);
-    let hash_binary = hash[0].toString(2);
-    hash_binary = "0000".substr(hash_binary.length) + hash_binary;
-    // get only a slice of the hash as checksum
-    hash_binary = hash_binary.slice(0, (size / 32));
-    let checksummed_entropy_binary = entropy_binary + hash_binary;
-    return mapWords(checksummed_entropy_binary);
+/**
+ * Generates a mnemonic from a given entropy
+ * @param {*} entropy - Entropy to generate mnemonic from. Without entropy
+ * @return {string} Mnemonic
+ */
+function genMnemonic(entropy) {
+  const size = entropy.length * 8;
+  if (size < 128 || size > 256 || size % 32 !== 0) {
+    throw new InvalidSizeException('The provided size is invalid');
+  }
+  let binary;
+  let entropyBinary = '';
+  // change from byte buffer to binary string
+  for (const b of entropy) {
+    binary = b.toString(2);
+    entropyBinary += '00000000'.substr(binary.length) + binary;
+  }
+  const hash = hashData(entropy);
+  let hashBinary = hash[0].toString(2);
+  hashBinary = '00000000'.substr(hashBinary.length) + hashBinary;
+  // get only a slice of the hash as checksum
+  hashBinary = hashBinary.slice(0, (size / 32));
+  const checksummedEntropyBinary = entropyBinary + hashBinary;
+  return mapWords(checksummedEntropyBinary);
 }
 
+/**
+ * Salting a password
+ * @param {string} password
+ * @return {string} salted password
+ */
+function salt(password) {
+  return 'mnemonic' + (password || '');
+}
 
-let mnemonic = gen_mnemonic(size)
-console.log(mnemonic)
-mapNumbers(mnemonic) 
+/**
+ * @param {Number} size in bits
+ * @return {Buffer} random (size / 8) bytes
+ */
+function genEntropy(size) {
+  return crypto.randomBytes(size / 8);
+}
+
+/**
+ * Takes a password and mnemonic and uses pbkdf2 (2048 rounds and sha512) 
+ * function to generate a random seed.
+ * @param {string} mnemonic
+ * @param {string} password
+ * @return {buffer} seed
+ */
+function mnemonicToSeedSync(mnemonic, password) {
+  const mnemonicBuffer = Buffer.from(mnemonic, 'utf8');
+  const saltBuffer = Buffer.from(salt(password), 'utf8');
+  return pbkdf2.pbkdf2Sync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
+}
+
+// const entropy = Buffer.from('000000000000000000000000000000000000000000000000', 'hex');
+// const mnemonic = genMnemonic(entropy);
+// console.log(mnemonic);
+// console.log('Valid? -', validMnemonic(mnemonic));
+// console.log('Seed:', mnemonicToSeedSync(mnemonic, 'TREZOR').toString('hex'));
