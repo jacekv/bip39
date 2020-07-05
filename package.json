@@ -1,7 +1,7 @@
 {
   "name": "bip39",
   "version": "1.0.0",
-  "description": "Tried to implement BIP39 using Python and JavaScript without the need of installing packages.",
+  "description": "BIP39 lib, which allows you to generate a mnemonic and a random seed",
   "main": "bip39.js",
   "scripts": {
     "lint": "eslint",
@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/jacekv/bip39.git"
   },
-  "author": "",
+  "author": "Jacek Varky",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/jacekv/bip39/issues"
