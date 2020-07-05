@@ -1,12 +1,7 @@
 const crypto = require('crypto');
 const pbkdf2 = require('pbkdf2');
 const wordList = require('./english.js');
-/*
-    Todo: left pad
-          work on package.json
-          write comments
-          README.md
- */
+
 
 module.exports = {
   genEntropy: genEntropy,
@@ -14,6 +9,21 @@ module.exports = {
   validMnemonic: validMnemonic,
   mnemonicToSeedSync: mnemonicToSeedSync,
 };
+
+/**
+ * Adding a padding on the left side
+ * @param {string} str which is padded
+ * @param {string} padString the padding consists off
+ * @param {number} length of the overall string
+ * @return {string} the left padded string
+ */
+function lpad(str, padString, length) {
+  while (str.length < length) {
+    str = padString + str;
+  }
+  return str;
+}
+
 /**
  * Hashes the given data using sha256
  * @param {*} data - Data to be hashed
@@ -59,7 +69,7 @@ function validMnemonic(mnemonic) {
   // mapping from word to bi
   for (const word of mnemonic) {
     bin = wordList.wordToNumber[word].toString(2);
-    binary += '00000000000'.substr(bin.length) + bin;
+    binary += lpad(bin, '0', 11);
   }
   const checksumLength = Math.floor(binary.length / 32);
   const checksum = binary.slice(binary.length - checksumLength);
@@ -71,7 +81,7 @@ function validMnemonic(mnemonic) {
   }
   const hash = hashData(Buffer.from(values));
   let hashBinary = hash[0].toString(2);
-  hashBinary = '00000000'.substr(hashBinary.length) + hashBinary;
+  hashBinary += lpad(hashBinary, '0', 8);
   hashBinary = hashBinary.slice(0, checksumLength);
   if (hashBinary !== checksum) {
     return false;
@@ -89,16 +99,14 @@ function genMnemonic(entropy) {
   if (size < 128 || size > 256 || size % 32 !== 0) {
     throw new InvalidSizeException('The provided size is invalid');
   }
-  let binary;
   let entropyBinary = '';
   // change from byte buffer to binary string
   for (const b of entropy) {
-    binary = b.toString(2);
-    entropyBinary += '00000000'.substr(binary.length) + binary;
+    entropyBinary += lpad(b.toString(2), '0', 8);
   }
   const hash = hashData(entropy);
   let hashBinary = hash[0].toString(2);
-  hashBinary = '00000000'.substr(hashBinary.length) + hashBinary;
+  hashBinary = lpad(hashBinary, '0', 8);
   // get only a slice of the hash as checksum
   hashBinary = hashBinary.slice(0, (size / 32));
   const checksummedEntropyBinary = entropyBinary + hashBinary;
@@ -135,8 +143,8 @@ function mnemonicToSeedSync(mnemonic, password) {
   return pbkdf2.pbkdf2Sync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
 }
 
-// const entropy = Buffer.from('000000000000000000000000000000000000000000000000', 'hex');
-// const mnemonic = genMnemonic(entropy);
-// console.log(mnemonic);
-// console.log('Valid? -', validMnemonic(mnemonic));
-// console.log('Seed:', mnemonicToSeedSync(mnemonic, 'TREZOR').toString('hex'));
+const entropy = Buffer.from('000000000000000000000000000000000000000000000000', 'hex');
+const mnemonic = genMnemonic(entropy);
+console.log(mnemonic);
+console.log('Valid? -', validMnemonic(mnemonic));
+console.log('Seed:', mnemonicToSeedSync(mnemonic, 'TREZOR').toString('hex'));
