@@ -81,7 +81,7 @@ function validMnemonic(mnemonic) {
   }
   const hash = hashData(Buffer.from(values));
   let hashBinary = hash[0].toString(2);
-  hashBinary += lpad(hashBinary, '0', 8);
+  hashBinary = lpad(hashBinary, '0', 8);
   hashBinary = hashBinary.slice(0, checksumLength);
   if (hashBinary !== checksum) {
     return false;
@@ -142,9 +142,3 @@ function mnemonicToSeedSync(mnemonic, password) {
   const saltBuffer = Buffer.from(salt(password), 'utf8');
   return pbkdf2.pbkdf2Sync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
 }
-
-const entropy = Buffer.from('000000000000000000000000000000000000000000000000', 'hex');
-const mnemonic = genMnemonic(entropy);
-console.log(mnemonic);
-console.log('Valid? -', validMnemonic(mnemonic));
-console.log('Seed:', mnemonicToSeedSync(mnemonic, 'TREZOR').toString('hex'));
