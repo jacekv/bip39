@@ -1,9 +1,15 @@
 JavaScript implementation of [Bitcoin BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki): Mnemonic code for generating deterministic keys
 
+# INSTALL
+To install the package, just run
+
+```
+npm i bip39js
+```
 
 # EXAMPLE
 ```javascript
-const bip39 = require('./bip39.js');
+const bip39 = require('bip39js');
 
 const size = 128; // 12 words
 const entropy = bip39.genEntropy(size);
@@ -32,3 +38,6 @@ npm test
 ```
 Test vecots taken from [Trezor Python Mnemonic](https://github.com/trezor/python-mnemonic/blob/master/vectors.json).
 Password to generate seed is 'TREZOR'.
+
+# License
+MIT
